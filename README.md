@@ -73,6 +73,8 @@ Un fichier `note.csv` peut indiquer le type d'outil ou l'opération réalisée :
 Ces informations sont ajoutées dans le fichier de sortie.
 
 
+![](img/excel.png)
+
 ### Auteurs
 
 * BPasquiet - 16/06/2022
