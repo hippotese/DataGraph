@@ -26,6 +26,7 @@ class Datafficheur:
         )
         parser.add_argument("-d", "--dir",
                             help="Chemin vers le dossier contenant les données Datafficheur.",
+                            required=True,
                             type=pathlib.Path)
         parser.add_argument("-v", "--verbose",
                             help="Affiche des messages sur la progression.",
@@ -34,7 +35,8 @@ class Datafficheur:
                             help=f"Nom du fichier créé. Par défaut: {self.output}",
                             default=self.output)
         parser.add_argument("-p", "--plot",
-                            help=f"Création d'un graphique. Par défaut: {self.plot}",
+                            help=f"Création d'un graphique.",
+                            action=argparse.BooleanOptionalAction,
                             default=self.plot)
         parser.add_argument("-op", "--outputplot",
                             help=f"Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: {self.outputplot}",
