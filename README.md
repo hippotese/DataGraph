@@ -30,7 +30,6 @@ sont converties
 
 ### Usage
 
-
 ```shell
 python3 datafficheur.py --help
 usage: Datafficheur [-h] -d DIR [-n NOTE] [-v VERBOSE] [-o OUTPUT] [-p | --plot | --no-plot] [-op OUTPUTPLOT]
@@ -40,19 +39,20 @@ Lecture des données du capteur Datafficheur. http://hippotese.free.fr/blog/inde
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d DIR, --dir DIR     Chemin vers le dossier contenant les données Datafficheur.
-  -n NOTE, --note NOTE  Fichier indiquant les temps de début et fin et le type d'outil. Par défaut: note.csv
+  -n NOTE, --note NOTE  Fichier indiquant les temps de début et fin et le type d outil. Par défaut: note.csv
   -v VERBOSE, --verbose VERBOSE
                         Affiche des messages sur la progression.
   -o OUTPUT, --output OUTPUT
                         Nom du fichier créé. Par défaut: output.csv
   -p, --plot, --no-plot
-                        Création d'un graphique. (default: True)
+                        Création d un graphique. (default: True)
   -op OUTPUTPLOT, --outputplot OUTPUTPLOT
                         Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: None
   -z TIMEZONE, --timezone TIMEZONE
                         Fuseau horaire. Par défaut: Europe/Paris
 
+required arguments:
+  -d DIR, --dir DIR     Chemin vers le dossier contenant les données Datafficheur.
 ```
 
 
