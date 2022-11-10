@@ -7,12 +7,15 @@ import pytz
 from datetime import datetime
 from glob import glob
 from matplotlib import pyplot as plt
+from os.path import exists
 
 
 class Datafficheur:
     DEFAULT_TIMEZONE = "Europe/Paris"
     timezone = None
     output = "output.csv"
+    note = "note.csv"
+    hasNote = False
     dir = None
     plot = True
     outputplot = None
@@ -24,10 +27,14 @@ class Datafficheur:
             prog="Datafficheur",
             description="Lecture des données du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur"
         )
-        parser.add_argument("-d", "--dir",
+        requiredNamed = parser.add_argument_group('required arguments')
+        requiredNamed.add_argument("-d", "--dir",
                             help="Chemin vers le dossier contenant les données Datafficheur.",
                             required=True,
                             type=pathlib.Path)
+        parser.add_argument("-n", "--note",
+                            help=f"Fichier indiquant les temps de début et fin et le type d'outil. Par défaut: {self.note}",
+                            default=self.note)
         parser.add_argument("-v", "--verbose",
                             help="Affiche des messages sur la progression.",
                             default=self.verbose)
@@ -47,17 +54,21 @@ class Datafficheur:
 
         args = parser.parse_args()
         self.dir = args.dir
+        self.note = args.note
         self.output = args.output
         self.plot = args.plot
         self.outputplot = args.outputplot
         self.verbose = args.verbose
         self.timezone = pytz.timezone(args.timezone)
 
+        self.hasNote = exists(os.path.join(self.dir, self.note))
+
         # Pattern pour retrouver les fichiers datafficheur dans le dossier de travail
         # os.path.join permet de reconstituer le chemin d'accès sans se soucier du séparateur "/" ou "\" qui peut différer entre unix et windows
         pattern = os.path.join(self.dir, "*.TXT")
         # la fonction glob permet de lister les fichiers correspondant au pattern
         fichiers = glob(pattern)
+
         # la fonction map permet d'appliquer à chaque élément d'un itérable (notre liste de fichiers) une même fonction (Datafficheur._load_datafficheur_file)
         # cette fonction renvoie un objet itérable qui permet de lister les retours de la fonction appliqué à chaque élément.
         datas_par_fichier = [self._load_datafficheur_file(fichier) for fichier in fichiers]
@@ -69,6 +80,18 @@ class Datafficheur:
         # Vu avec Deny Fady : parfois la boucle d'écriture est décalée avec la boucle de mesure.
         # On ne conserve qu'une ligne sur les deux écrites dans ce cas.
         self.datas = sorted_datas[~sorted_datas.index.duplicated('first')]
+
+        if self.hasNote:
+            if self.verbose:
+                print(f"Chargement des notes {self.note}")
+            notecols=['start', 'end', 'action']
+            self.note_metadata = pd.read_csv(
+                os.path.join(self.dir, self.note),
+                header=None,
+                names=notecols
+            )
+            if self.verbose:
+                print(self.note_metadata)
 
         self.write_output()
         pass
@@ -160,6 +183,7 @@ class Datafficheur:
         for col in df_total.columns:
             df[("Total", col)] = df_total[col]
 
+
         # affichage des données du datafficheur sur une courbe
         if self.plot:
             if self.verbose:
@@ -173,6 +197,13 @@ class Datafficheur:
                 plt.savefig(os.path.join(self.dir, self.outputplot))
             else:
                 plt.show()
+
+        if self.hasNote:
+            # Ajout du type d'outil
+            for index, row in self.note_metadata.iterrows():
+                if self.verbose:
+                    print(f"Ajout de l'action sur l'interval {row['start']}-{row['end']}: {row['action']}")
+                df.loc[row['start'] : row['end'], "action"] = row['action']
 
         # Fusion sur un seul niveau des noms de colonnes pour écriture du fichier csv
         df.columns = [' '.join(str(level) for level in col) for col in df.columns]

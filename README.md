@@ -33,22 +33,26 @@ sont converties
 
 ```shell
 python3 datafficheur.py --help
-usage: Datafficheur [-h] [-d DIR] [-v VERBOSE] [-o OUTPUT] [-p PLOT] [-op OUTPUTPLOT] [-z TIMEZONE]
+usage: Datafficheur [-h] -d DIR [-n NOTE] [-v VERBOSE] [-o OUTPUT] [-p | --plot | --no-plot] [-op OUTPUTPLOT]
+                    [-z TIMEZONE]
 
 Lecture des données du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur
 
 optional arguments:
   -h, --help            show this help message and exit
   -d DIR, --dir DIR     Chemin vers le dossier contenant les données Datafficheur.
+  -n NOTE, --note NOTE  Fichier indiquant les temps de début et fin et le type d'outil. Par défaut: note.csv
   -v VERBOSE, --verbose VERBOSE
                         Affiche des messages sur la progression.
   -o OUTPUT, --output OUTPUT
                         Nom du fichier créé. Par défaut: output.csv
-  -p PLOT, --plot PLOT  Création d un graphique. Par défaut: True
+  -p, --plot, --no-plot
+                        Création d'un graphique. (default: True)
   -op OUTPUTPLOT, --outputplot OUTPUTPLOT
                         Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: None
   -z TIMEZONE, --timezone TIMEZONE
                         Fuseau horaire. Par défaut: Europe/Paris
+
 ```
 
 
@@ -57,6 +61,17 @@ Exemple : Traitement des données du répertoire `mesures-brutes-apres-midi` ave
 ```shell
 python3 datafficheur.py -d mesures-brutes-apres-midi/ -op output.png
 ```
+
+
+Un fichier `note.csv` peut indiquer le type d'outil ou l'opération réalisée :
+```csv
+2022-10-06 15:44,2022-10-06 15:48,"Brabanette âge métal, 9ème trou"
+2022-10-06 15:48,2022-10-06 15:53,"Idem 10ème trou"
+2022-10-06 15:53,2022-10-06 15:56:39,"Idem 12ème trou"
+2022-10-06 15:57:36,2022-10-06 16:00,"Idem 10ème trou, Labour bordure enherbée."
+```
+Ces informations sont ajoutées dans le fichier de sortie.
+
 
 ### Auteurs
 
