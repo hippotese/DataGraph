@@ -6,7 +6,7 @@ Il permet :
 * l'assemblage des fichiers bruts et la production d'un fichier globale (avec une ligne par dixième de seconde)
 * la génération d'un graphique (eg. format PDF, PNG, SVG)
 
-![](output.png)
+![](img/output.png)
 
 Les trames pour 1 capteur
 ```csv
