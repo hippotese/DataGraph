@@ -4,7 +4,9 @@ Ce programme permet la lecture des données du capteur Datafficheur (http://hipp
 
 Il permet :
 * l'assemblage des fichiers bruts et la production d'un fichier globale (avec une ligne par dixième de seconde)
-* la génération d'un graphique 
+* la génération d'un graphique (eg. format PDF, PNG, SVG)
+
+![](output.png)
 
 Les trames pour 1 capteur
 ```csv
@@ -44,11 +46,17 @@ optional arguments:
                         Nom du fichier créé. Par défaut: output.csv
   -p PLOT, --plot PLOT  Création d un graphique. Par défaut: True
   -op OUTPUTPLOT, --outputplot OUTPUTPLOT
-                        Sauvegarde du graphique au format PDF. Par défaut: None
+                        Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: None
   -z TIMEZONE, --timezone TIMEZONE
                         Fuseau horaire. Par défaut: Europe/Paris
 ```
 
+
+Exemple : Traitement des données du répertoire `mesures-brutes-apres-midi` avec une sortie graphique au format PNG.
+
+```shell
+python3 datafficheur.py -d mesures-brutes-apres-midi/ -op output.png
+```
 
 ### Auteurs
 

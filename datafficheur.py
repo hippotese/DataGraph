@@ -37,7 +37,7 @@ class Datafficheur:
                             help=f"Création d'un graphique. Par défaut: {self.plot}",
                             default=self.plot)
         parser.add_argument("-op", "--outputplot",
-                            help=f"Sauvegarde du graphique au format PDF. Par défaut: {self.outputplot}",
+                            help=f"Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: {self.outputplot}",
                             default=self.outputplot)
         parser.add_argument("-z", "--timezone",
                             help=f"Fuseau horaire. Par défaut: {self.DEFAULT_TIMEZONE}",
@@ -47,6 +47,7 @@ class Datafficheur:
         self.dir = args.dir
         self.output = args.output
         self.plot = args.plot
+        self.outputplot = args.outputplot
         self.verbose = args.verbose
         self.timezone = pytz.timezone(args.timezone)
 
@@ -166,7 +167,7 @@ class Datafficheur:
             plt.legend()
             if (self.outputplot):
                 if self.verbose:
-                    print("Export du graphique au format PDF.")
+                    print(f"Export du graphique dans {self.outputplot}.")
                 plt.savefig(os.path.join(self.dir, self.outputplot))
             else:
                 plt.show()
