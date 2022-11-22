@@ -77,6 +77,6 @@ Ces informations sont ajoutées dans le fichier de sortie.
 
 ### Auteurs
 
-* BPasquiet - 16/06/2022
+* Benoît Pasquiet - Institut Français du Cheval et de l'Equitation
 * Deny Fady
 * François Prunayre
