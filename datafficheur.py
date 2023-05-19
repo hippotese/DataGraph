@@ -1,226 +1,373 @@
 import argparse
-import numpy as np
-import os.path
-import pandas as pd
+import os
 import pathlib
 import pytz
-from datetime import datetime
+import re
 from glob import glob
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
-from os.path import exists
+
+# Constante
+DEFAULT_TIMEZONE = "Europe/Paris"
+
+# traitement des arguments
+parser = argparse.ArgumentParser(
+    prog="Datafficheur",
+    description="Lecture des donnees du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur",
+)
+requiredNamed = parser.add_argument_group("required arguments")
+requiredNamed.add_argument(
+    "-d",
+    "--dir",
+    help="Chemin vers le dossier contenant les donnees Datafficheur.",
+    required=True,
+    type=pathlib.Path,
+)
+parser.add_argument(
+    "-n",
+    "--note",
+    help=f"Fichier indiquant les temps de debut et fin et le type d'outil. Par defaut: note.csv",
+    default="note.csv",
+)
+parser.add_argument(
+    "-v", "--verbose", help="Affiche des messages sur la progression.", default=True
+)
+parser.add_argument(
+    "-o",
+    "--output",
+    help=f"Nom du fichier cree. Par defaut: output.csv",
+    default="output.csv",
+)
+parser.add_argument(
+    "-p",
+    "--plot",
+    help=f"Creation d'un graphique.",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+)
+parser.add_argument(
+    "-op",
+    "--outputplot",
+    help=f"Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par defaut: None",
+    default=None,
+)
+parser.add_argument(
+    "-z",
+    "--timezone",
+    help=f"Fuseau horaire. Par defaut: {DEFAULT_TIMEZONE}",
+)
+
+args = parser.parse_args()
+
+# definition de la timezone
+tz = DEFAULT_TIMEZONE
+try:
+    tz = pytz.timezone(args.timezone)
+except pytz.exceptions.UnknownTimeZoneError:
+    if args.verbose:
+        print(f"TimeZone inconnu. utilisation de {DEFAULT_TIMEZONE}")
+    tz = DEFAULT_TIMEZONE
+
+output = args.output
+note = args.note
+dir = args.dir
+hasNote = os.path.exists(os.path.join(dir, note))
+plot = args.plot
+outputplot = args.outputplot
+verbose = args.verbose
 
 
-class Datafficheur:
-    DEFAULT_TIMEZONE = "Europe/Paris"
-    timezone = None
-    output = "output.csv"
-    note = "note.csv"
-    hasNote = False
-    dir = None
-    plot = True
-    outputplot = None
-    # outputplot = "output.pdf"
-    verbose = True
+def find_files(directory):
+    """
+    Cherche et retourne une liste des fichiers dans le dossier specifie
+    dont le nom correspond e une expression reguliere.
 
-    def __init__(self) -> None:
-        parser = argparse.ArgumentParser(
-            prog="Datafficheur",
-            description="Lecture des données du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur"
+    L'expression reguliere utilisee est r'[0-9]{8}.txt$',
+    ce qui signifie que la fonction cherche des fichiers
+    qui ont un nom de 8 chiffres (de 0 e 9), suivi par l'extension '.txt'.
+
+    Args:
+        directory (str): Le chemin du dossier dans lequel chercher les fichiers.
+
+    Returns:
+        list: Une liste contenant les noms de tous les fichiers correspondant e l'expression reguliere
+        dans le dossier specifie. Si aucun fichier ne correspond, la fonction retourne une liste vide.
+    """
+    pattern = re.compile(r"[0-9]{8}.txt$", re.IGNORECASE)
+    return [
+        os.path.join(directory, f) for f in os.listdir(directory) if pattern.match(f)
+    ]
+
+
+def read_row_datetime(row):
+    """
+    Reconstitue le datetime d'une ligne du fichier brut avec la date
+    (colonne 1), l'heure (colonne 2) et la deciseconde (colonne 3)
+    """
+    return datetime.strptime(
+        row[1] + " " + row[2] + "." + str(row[3]), "%d/%m/%Y %H:%M:%S.%f"
+    )
+
+
+def calcul_nom_colonne(x, frequence_acquisition=10):
+    """
+    Calcule la fraction de seconde et le numero du capteur en fonction
+    de l'index de l'echantillon et de la frequence d'acquisition.
+
+    Args:
+        x (int): Index de l'echantillon.
+        frequence_acquisition (int): Nombre d'echantillons par seconde. Doit etre positif. Par defaut : 10.
+
+    Returns:
+        tuple: Un tuple (fraction_seconde, numero_capteur).
+
+    Raises:
+        ValueError: Si x ou frequence_acquisition est negatif, ou si frequence_acquisition est zero.
+    """
+    if x < 0 or frequence_acquisition <= 0:
+        raise ValueError(
+            "x et frequence_acquisition doivent etre positifs. frequence_acquisition doit etre different de zero."
         )
-        requiredNamed = parser.add_argument_group('required arguments')
-        requiredNamed.add_argument("-d", "--dir",
-                            help="Chemin vers le dossier contenant les données Datafficheur.",
-                            required=True,
-                            type=pathlib.Path)
-        parser.add_argument("-n", "--note",
-                            help=f"Fichier indiquant les temps de début et fin et le type d'outil. Par défaut: {self.note}",
-                            default=self.note)
-        parser.add_argument("-v", "--verbose",
-                            help="Affiche des messages sur la progression.",
-                            default=self.verbose)
-        parser.add_argument("-o", "--output",
-                            help=f"Nom du fichier créé. Par défaut: {self.output}",
-                            default=self.output)
-        parser.add_argument("-p", "--plot",
-                            help=f"Création d'un graphique.",
-                            action=argparse.BooleanOptionalAction,
-                            default=self.plot)
-        parser.add_argument("-op", "--outputplot",
-                            help=f"Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: {self.outputplot}",
-                            default=self.outputplot)
-        parser.add_argument("-z", "--timezone",
-                            help=f"Fuseau horaire. Par défaut: {self.DEFAULT_TIMEZONE}",
-                            default=self.DEFAULT_TIMEZONE)
 
-        args = parser.parse_args()
-        self.dir = args.dir
-        self.note = args.note
-        self.output = args.output
-        self.plot = args.plot
-        self.outputplot = args.outputplot
-        self.verbose = args.verbose
-        self.timezone = pytz.timezone(args.timezone)
+    fraction_seconde = x % frequence_acquisition
+    numero_capteur = x // frequence_acquisition + 1
+    return (fraction_seconde, numero_capteur)
 
-        self.hasNote = exists(os.path.join(self.dir, self.note))
 
-        # Pattern pour retrouver les fichiers datafficheur dans le dossier de travail
-        # os.path.join permet de reconstituer le chemin d'accès sans se soucier du séparateur "/" ou "\" qui peut différer entre unix et windows
-        pattern = os.path.join(self.dir, "*.TXT")
-        # la fonction glob permet de lister les fichiers correspondant au pattern
-        fichiers = glob(pattern)
+def load_datafficheur_file(fichier: str, verbose: bool = False):
+    """
+    Charge un fichier CSV, effectue des transformations sur les donnees et retourne le DataFrame resultant.
 
-        # la fonction map permet d'appliquer à chaque élément d'un itérable (notre liste de fichiers) une même fonction (Datafficheur._load_datafficheur_file)
-        # cette fonction renvoie un objet itérable qui permet de lister les retours de la fonction appliqué à chaque élément.
-        datas_par_fichier = [self._load_datafficheur_file(fichier) for fichier in fichiers]
-        # on concatène dans un même DataFrame les dataframes qu'on a obtenu pour chaque fichier à la ligne précédente.
+    Args:
+        fichier (str): Chemin vers le fichier e charger.
+        verbose (bool): Si vrai, affiche des messages supplementaires lors du traitement.
+
+    Returns:
+        pandas.DataFrame: Le DataFrame contenant les donnees chargees et transformees.
+
+    Raises:
+        FileNotFoundError: Si le fichier specifie n'existe pas.
+        pd.errors.ParserError: Si le fichier ne peut pas etre correctement lu comme un CSV.
+    """
+    if verbose:
+        print(f"Traitement du fichier {fichier}")
+
+    try:
+        datas_fichier = pd.read_csv(fichier, header=None)
+    except FileNotFoundError:
+        print(f"Le fichier {fichier} n'a pas ete trouve.")
+        raise
+    except pd.errors.ParserError:
+        print(f"Erreur lors de l'analyse du fichier {fichier}.")
+        raise
+
+    datas_fichier.set_index([0, 1, 2], inplace=True)
+    datas_fichier.columns = pd.MultiIndex.from_tuples(
+        map(calcul_nom_colonne, range(len(datas_fichier.columns)))
+    )
+    datas_fichier = datas_fichier.stack(level=0)
+    datas_fichier.index = [read_row_datetime(row) for row in datas_fichier.index]
+
+    return datas_fichier
+
+
+def moving_average(x, w):
+    """
+    Calcule la moyenne mobile d'une liste de nombres.
+
+    Args:
+        x (list of number): La liste de nombres sur laquelle calculer la moyenne mobile.
+        w (int): La taille de la fenetre de la moyenne mobile.
+
+    Returns:
+        numpy.array: Un array numpy contenant les valeurs de la moyenne mobile.
+
+    Raises:
+        ValueError: Si w est zero ou negatif, ou si x est une liste vide.
+    """
+    if not x:
+        raise ValueError("x ne peut pas etre une liste vide.")
+    if w <= 0:
+        raise ValueError("w doit etre un entier positif.")
+    if w > len(x):
+        raise ValueError("w ne peut pas etre plus grand que la longueur de x.")
+
+    return np.convolve(x, np.ones(w), mode="same") / w
+
+
+def prepare_data(data):
+    """
+    Prepare les donnees pour une analyse ulterieure en regroupant et en sommant les colonnes.
+
+    Args:
+        data (pandas.DataFrame): Le DataFrame e preparer.
+
+    Returns:
+        pandas.DataFrame: Le DataFrame prepare.
+
+    Raises:
+        ValueError: Si data n'est pas un DataFrame pandas.
+    """
+    if not isinstance(data, pd.DataFrame):
+        raise ValueError("data doit etre un DataFrame pandas.")
+
+    df = {}
+    for col in data.columns:
+        df[col] = pd.DataFrame(data={"Efforts": data[col]}, index=data.index)
+        df[col].index.name = "date"
+    df = pd.concat(df, axis=1)
+    df_total = df.groupby(axis=1, level=1).sum()
+    for col in df_total.columns:
+        df[("Total", col)] = df_total[col]
+
+    return df
+
+
+def create_plot(df, timezone, outputplot=None, verbose=False):
+    """
+    Cree un graphique e partir des donnees fournies et l'enregistre dans un fichier si specifie.
+
+    Args:
+        df (pandas.DataFrame): Le DataFrame e representer graphiquement.
+        timezone (str): Le fuseau horaire e utiliser pour le graphique.
+        outputplot (str, optional): Le nom du fichier oe sauvegarder le graphique. Si None, le graphique est affiche. Par defaut : None.
+        verbose (bool, optional): Si vrai, affiche des messages supplementaires pendant la creation du graphique. Par defaut : False.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: Si df n'est pas un DataFrame pandas ou si outputplot n'est pas une chaene de caracteres.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("df doit etre un DataFrame pandas.")
+    if outputplot is not None and not isinstance(outputplot, str):
+        raise ValueError("outputplot doit etre une chaene de caracteres.")
+
+    plt.figure(figsize=(19.20, 10.80), dpi=200)
+
+    plt.gca().xaxis_date(timezone)
+    plt.plot(df, label=df.columns, alpha=0.5)
+
+    max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
+    plt.yticks(np.arange(0, max_y, 25))  # Definit les ticks de l'axe des y tous les 25
+    plt.grid(
+        axis="y", linestyle="dotted"
+    )  # Dessine une grille horizontale en pointilles
+
+    plt.legend()
+    plt.title("DATAFFICHEUR - Effort en fonction du temps")
+    plt.xlabel("Temps")
+    plt.ylabel("kgf (kilogramme force - equivalant daN)")
+    if outputplot:
+        if verbose:
+            print(f"Export du graphique dans {outputplot}.")
+        plt.savefig(outputplot)
+        plt.close()  # Ferme la figure pour liberer de la memoire
+    else:
+        plt.show()
+
+
+def add_notes(df, dir, note, verbose=False):
+    """
+    Ajoute des notes e un DataFrame sur un intervalle de temps specifique.
+
+    Args:
+        df (pandas.DataFrame): Le DataFrame auquel ajouter les notes.
+        dir (str): Le repertoire oe se trouve le fichier contenant les notes.
+        note (str): Le nom du fichier contenant les notes.
+        verbose (bool, optional): Si vrai, affiche des messages supplementaires pendant le processus. Par defaut : False.
+
+    Returns:
+        pandas.DataFrame: Le DataFrame avec les notes ajoutees.
+
+    Raises:
+        ValueError: Si df n'est pas un DataFrame pandas, ou si le fichier des notes ne contient pas les colonnes 'start', 'end' et 'action'.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("df doit etre un DataFrame pandas.")
+
+    if verbose:
+        print(f"Chargement des notes {note}")
+    notecols = ["start", "end", "action"]
+    note_metadata = pd.read_csv(os.path.join(dir, note), header=None, names=notecols)
+    if not {"start", "end", "action"}.issubset(note_metadata.columns):
+        raise ValueError(
+            "Le fichier des notes doit contenir les colonnes 'start', 'end' et 'action'."
+        )
+
+    if verbose:
+        print(note_metadata)
+
+    for index, row in note_metadata.iterrows():
+        if verbose:
+            print(
+                f"Ajout de l'action sur l'interval {row['start']}-{row['end']}: {row['action']}"
+            )
+        df.loc[row["start"] : row["end"], "action"] = row["action"]
+
+    return df
+
+
+def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
+    """
+    Fonction principale qui execute la chaene de traitement de donnees.
+
+    Args:
+        dir (str): Le repertoire contenant les fichiers de donnees.
+        hasNote (bool): Indique s'il faut ajouter des notes aux donnees.
+        note (str): Le nom du fichier contenant les notes.
+        plot (bool): Indique si un graphique doit etre cree.
+        verbose (bool): Si vrai, affiche des messages supplementaires pendant le processus.
+        outputplot (str): Le chemin du fichier de sortie pour le graphique.
+        tz (str): Le fuseau horaire e utiliser pour l'affichage des dates.
+        output (str): Le nom du fichier de sortie.
+    """
+
+    try:
+        # liste les fichiers sources
+        fichiers = find_files(dir)
+        if len(fichiers) == 0:
+            print(f"Aucun fichier de donnees dans {dir}")
+            exit()
+
+        # aggregation des datas
+        datas_par_fichier = [load_datafficheur_file(fichier) for fichier in fichiers]
         concatenated_datas = pd.concat(datas_par_fichier)
-        # On trie les valeurs par l'index, qui correspond à l'instant de chaque mesure
+        # On trie et suppression des doublons
         sorted_datas = concatenated_datas.sort_index()
-        # On supprime les doublons de l'index
-        # Vu avec Deny Fady : parfois la boucle d'écriture est décalée avec la boucle de mesure.
-        # On ne conserve qu'une ligne sur les deux écrites dans ce cas.
-        self.datas = sorted_datas[~sorted_datas.index.duplicated('first')]
+        datas = sorted_datas[~sorted_datas.index.duplicated("first")]
 
-        if self.hasNote:
-            if self.verbose:
-                print(f"Chargement des notes {self.note}")
-            notecols=['start', 'end', 'action']
-            self.note_metadata = pd.read_csv(
-                os.path.join(self.dir, self.note),
-                header=None,
-                names=notecols
+        df = prepare_data(datas)
+
+        # ajout des notes au dataframe si existe
+        if hasNote:
+            df = add_notes(df, dir, note, verbose)
+
+        # creation des fichier
+        if plot:
+            if verbose:
+                print("Creation du graphique.")
+            create_plot(
+                df, tz, os.path.join(dir, outputplot) if outputplot else None, verbose
             )
-            if self.verbose:
-                print(self.note_metadata)
 
-        self.write_output()
-        pass
-
-    def _read_row_datetime(self, row):
-        """
-            Reconstitue le datetime d'une ligne du fichier brut avec la date (colonne 1), l'heure (colonne 2) et la déciseconde (colonne 3)
-        """
-        return self.timezone.localize(datetime.strptime(
-            row[1] + ' ' + row[2] + '.' + str(row[3]),
-            '%d/%m/%Y %H:%M:%S.%f'
-        ))
-
-    def _load_datafficheur_file(self, fichier: str):
-        # On ignore le fichier TEST.TXT
-        if fichier.upper().endswith("\\TEST.TXT"):
-            return None
-
-        if self.verbose:
-            print(f"Traitement du fichier {fichier}")
-
-        # Le nom du fichier correspond à un horodatage, mais on le retrouve aussi dans les lignes du fichiers
-        # (_, nom_fichier_complet) = os.path.split(fichier)
-        # nom_fichier, _ = os.path.splitext(nom_fichier_complet)
-        # mois = nom_fichier[0:2]
-        # jour = nom_fichier[2:4]
-        # heure = nom_fichier[4:6]
-        # minute = nom_fichier[6:8]
-        # Lecture du fichier CSV
-        datas_fichier = pd.read_csv(
-            fichier,
-            header=None,
+        df.columns = [" ".join(str(level) for level in col) for col in df.columns]
+        df.index = pd.MultiIndex.from_arrays(
+            [df.index.date, [t.strftime("%H:%M:%S.%f")[:10] for t in df.index.time]],
+            names=["date", "heure"],
         )
-        # Les trois premières colonnes correspondent à l'en-tête (numéro de ligne, date, heure)
-        datas_fichier.set_index([0, 1, 2], inplace=True)
 
-        # Pour les colonnes, on va construire un nom à deux niveaux.
-        # le premier niveau correspond à la déciseconde ; le deuxième niveau correspond au numéro du capteur (1 ou 2)
+        if verbose:
+            print(f"Ecriture du fichier de sortie {output}")
+        df.to_csv(os.path.join(dir, output))
 
-        def calcul_nom_colonne(x, frequence_acquisition=10):
-            fraction_seconde = x % frequence_acquisition
-            numero_capteur = x // frequence_acquisition + 1
-            return (fraction_seconde, numero_capteur)
-
-        # Application de la fonction qui calcule les nouveaux noms de colonne, avec deux niveau
-        datas_fichier.columns = pd.MultiIndex.from_tuples(map(calcul_nom_colonne, range(len(datas_fichier.columns))))
-
-        # L'appel à stack permet de basculer les colonnes des fractions de seconde en lignes ; tout en conservant une colonne pour chaque capteur.
-        datas_fichier = datas_fichier.stack(level=0)
-        # On peut alors reconstituer un datetime avec la date (colonne 1), l'heure (colonne 2) et la déciseconde (colonne 3)
-        # Ce datetime donne un nouvel index pour les valeurs
-        datas_fichier.index = [self._read_row_datetime(row) for row in datas_fichier.index]
-
-        return datas_fichier
-
-    # fonction pour calculer une moyenne sur une fenêtre glissante
-    def moving_average(x, w):
-        return np.convolve(x, np.ones(w), mode="same") / w
-
-    def write_output(self):
-
-        if self.verbose:
-            print(f"Préparation des données {self.datas.index}")
-
-        # le tableau datafficheur.datas contient une colonne pour chaque capteur
-        # On va créer un nouveau dataframe, avec des colonnes à deux niveaux.
-        # le premier niveau sera alors le capteur ; le deuxième niveau étant pour la première colonne les valeurs, pour la deuxième colonne la moyenne sur 10 valeurs consécutives
-        df = {}
-        for col in self.datas.columns:
-            # je refais une nouvelle dataframe, pour avoir une colonne valeur, une colonne moyenne, et en index la date
-            df[col] = pd.DataFrame(
-                data={
-                    # valeurs brutes
-                    "Efforts": self.datas[col],
-                    # calcul de la moyenne mobile sur 1s (10 points)
-                    # je supprime la ligne d'en dessous pour virer les calculs des moyennes glissantes
-                    # "moyenne" : moving_average(datafficheur.datas[col],10), # Modif Deny
-                },
-                # l'index du dataframe est la date
-                index=self.datas.index
-            )
-            df[col].index.name = "date"
-        # concaténation des tableaux de chaque capteur
-        df = pd.concat(df, axis=1)
-
-        # calcul des totaux des deux capteurs
-        df_total = df.groupby(axis=1, level=1).sum()
-        # et on ajoute ça dans le tableau où figurent déjà les données des deux capteurs
-        for col in df_total.columns:
-            df[("Total", col)] = df_total[col]
+    except Exception as e:
+        print(f"Une erreur s'est produite : {e}")
 
 
-        # affichage des données du datafficheur sur une courbe
-        if self.plot:
-            if self.verbose:
-                print("Création du graphique.")
-            plt.gca().xaxis_date(self.timezone)
-            plt.plot(df, label=df.columns)
-            plt.legend()
-            if (self.outputplot):
-                if self.verbose:
-                    print(f"Export du graphique dans {self.outputplot}.")
-                plt.savefig(os.path.join(self.dir, self.outputplot))
-            else:
-                plt.show()
-
-        if self.hasNote:
-            # Ajout du type d'outil
-            for index, row in self.note_metadata.iterrows():
-                if self.verbose:
-                    print(f"Ajout de l'action sur l'interval {row['start']}-{row['end']}: {row['action']}")
-                df.loc[row['start'] : row['end'], "action"] = row['action']
-
-        # Fusion sur un seul niveau des noms de colonnes pour écriture du fichier csv
-        df.columns = [' '.join(str(level) for level in col) for col in df.columns]
-
-        # On sépare l'index de type datetime en deux niveaux, date et heure
-        df.index = pd.MultiIndex.from_arrays([
-            df.index.date,
-            [t.strftime("%H:%M:%S.%f")[:10] for t in df.index.time]  # Pour l'heure, je n'affiche que la déci-seconde.
-        ], names=['date', 'heure'])
-
-        if self.verbose:
-            print(f"Ecriture du fichier de sortie {self.output}")
-
-        df.to_csv(os.path.join(self.dir, self.output))
-
-        if self.verbose:
-            print("Traitement terminé.")
-
-
-Datafficheur()
+if __name__ == "__main__":
+    main(dir, hasNote, note, plot, verbose, outputplot, tz, output)
