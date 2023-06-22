@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-def create_plot(df, timezone, outputplot=None, verbose=False):
+def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10):
     """
     Cree un graphique e partir des donnees fournies et l'enregistre dans un fichier si specifie.
 
@@ -30,7 +30,7 @@ def create_plot(df, timezone, outputplot=None, verbose=False):
     plt.plot(df, label=df.columns, alpha=0.5)
 
     max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
-    plt.yticks(np.arange(0, max_y, 25))  # Definit les ticks de l'axe des y tous les 25
+    plt.yticks(np.arange(0, max_y, hticks))  # Definit les ticks de l'axe des y (default 10)
     plt.grid(
         axis="y", linestyle="dotted"
     )  # Dessine une grille horizontale en pointilles
