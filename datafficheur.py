@@ -1,17 +1,12 @@
 import argparse
 import os
-import pathlib
 import pytz
-import re
-from glob import glob
-from datetime import datetime
-
-import numpy as np
+import pathlib
 import pandas as pd
-from matplotlib import pyplot as plt
-
-# Constante
-DEFAULT_TIMEZONE = "Europe/Paris"
+from constants import DEFAULT_TIMEZONE
+from data_processing import load_datafficheur_file, add_notes, prepare_data
+from plotting import create_plot
+from utils import find_files, moving_average
 
 # traitement des arguments
 parser = argparse.ArgumentParser(
@@ -63,7 +58,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # definition de la timezone
-tz = DEFAULT_TIMEZONE
+tz = args.timezone
 try:
     tz = pytz.timezone(args.timezone)
 except pytz.exceptions.UnknownTimeZoneError:
@@ -78,238 +73,6 @@ hasNote = os.path.exists(os.path.join(dir, note))
 plot = args.plot
 outputplot = args.outputplot
 verbose = args.verbose
-
-
-def find_files(directory):
-    """
-    Cherche et retourne une liste des fichiers dans le dossier specifie
-    dont le nom correspond e une expression reguliere.
-
-    L'expression reguliere utilisee est r'[0-9]{8}.txt$',
-    ce qui signifie que la fonction cherche des fichiers
-    qui ont un nom de 8 chiffres (de 0 e 9), suivi par l'extension '.txt'.
-
-    Args:
-        directory (str): Le chemin du dossier dans lequel chercher les fichiers.
-
-    Returns:
-        list: Une liste contenant les noms de tous les fichiers correspondant e l'expression reguliere
-        dans le dossier specifie. Si aucun fichier ne correspond, la fonction retourne une liste vide.
-    """
-    pattern = re.compile(r"[0-9]{8}.txt$", re.IGNORECASE)
-    return [
-        os.path.join(directory, f) for f in os.listdir(directory) if pattern.match(f)
-    ]
-
-
-def read_row_datetime(row):
-    """
-    Reconstitue le datetime d'une ligne du fichier brut avec la date
-    (colonne 1), l'heure (colonne 2) et la deciseconde (colonne 3)
-    """
-    return datetime.strptime(
-        row[1] + " " + row[2] + "." + str(row[3]), "%d/%m/%Y %H:%M:%S.%f"
-    )
-
-
-def calcul_nom_colonne(x, frequence_acquisition=10):
-    """
-    Calcule la fraction de seconde et le numero du capteur en fonction
-    de l'index de l'echantillon et de la frequence d'acquisition.
-
-    Args:
-        x (int): Index de l'echantillon.
-        frequence_acquisition (int): Nombre d'echantillons par seconde. Doit etre positif. Par defaut : 10.
-
-    Returns:
-        tuple: Un tuple (fraction_seconde, numero_capteur).
-
-    Raises:
-        ValueError: Si x ou frequence_acquisition est negatif, ou si frequence_acquisition est zero.
-    """
-    if x < 0 or frequence_acquisition <= 0:
-        raise ValueError(
-            "x et frequence_acquisition doivent etre positifs. frequence_acquisition doit etre different de zero."
-        )
-
-    fraction_seconde = x % frequence_acquisition
-    numero_capteur = x // frequence_acquisition + 1
-    return (fraction_seconde, numero_capteur)
-
-
-def load_datafficheur_file(fichier: str, verbose: bool = False):
-    """
-    Charge un fichier CSV, effectue des transformations sur les donnees et retourne le DataFrame resultant.
-
-    Args:
-        fichier (str): Chemin vers le fichier e charger.
-        verbose (bool): Si vrai, affiche des messages supplementaires lors du traitement.
-
-    Returns:
-        pandas.DataFrame: Le DataFrame contenant les donnees chargees et transformees.
-
-    Raises:
-        FileNotFoundError: Si le fichier specifie n'existe pas.
-        pd.errors.ParserError: Si le fichier ne peut pas etre correctement lu comme un CSV.
-    """
-    if verbose:
-        print(f"Traitement du fichier {fichier}")
-
-    try:
-        datas_fichier = pd.read_csv(fichier, header=None)
-    except FileNotFoundError:
-        print(f"Le fichier {fichier} n'a pas ete trouve.")
-        raise
-    except pd.errors.ParserError:
-        print(f"Erreur lors de l'analyse du fichier {fichier}.")
-        raise
-
-    datas_fichier.set_index([0, 1, 2], inplace=True)
-    datas_fichier.columns = pd.MultiIndex.from_tuples(
-        map(calcul_nom_colonne, range(len(datas_fichier.columns)))
-    )
-    datas_fichier = datas_fichier.stack(level=0)
-    datas_fichier.index = [read_row_datetime(row) for row in datas_fichier.index]
-
-    return datas_fichier
-
-
-def moving_average(x, w):
-    """
-    Calcule la moyenne mobile d'une liste de nombres.
-
-    Args:
-        x (list of number): La liste de nombres sur laquelle calculer la moyenne mobile.
-        w (int): La taille de la fenetre de la moyenne mobile.
-
-    Returns:
-        numpy.array: Un array numpy contenant les valeurs de la moyenne mobile.
-
-    Raises:
-        ValueError: Si w est zero ou negatif, ou si x est une liste vide.
-    """
-    if not x:
-        raise ValueError("x ne peut pas etre une liste vide.")
-    if w <= 0:
-        raise ValueError("w doit etre un entier positif.")
-    if w > len(x):
-        raise ValueError("w ne peut pas etre plus grand que la longueur de x.")
-
-    return np.convolve(x, np.ones(w), mode="same") / w
-
-
-def prepare_data(data):
-    """
-    Prepare les donnees pour une analyse ulterieure en regroupant et en sommant les colonnes.
-
-    Args:
-        data (pandas.DataFrame): Le DataFrame e preparer.
-
-    Returns:
-        pandas.DataFrame: Le DataFrame prepare.
-
-    Raises:
-        ValueError: Si data n'est pas un DataFrame pandas.
-    """
-    if not isinstance(data, pd.DataFrame):
-        raise ValueError("data doit etre un DataFrame pandas.")
-
-    df = {}
-    for col in data.columns:
-        df[col] = pd.DataFrame(data={"Efforts": data[col]}, index=data.index)
-        df[col].index.name = "date"
-    df = pd.concat(df, axis=1)
-    df_total = df.groupby(axis=1, level=1).sum()
-    for col in df_total.columns:
-        df[("Total", col)] = df_total[col]
-
-    return df
-
-
-def create_plot(df, timezone, outputplot=None, verbose=False):
-    """
-    Cree un graphique e partir des donnees fournies et l'enregistre dans un fichier si specifie.
-
-    Args:
-        df (pandas.DataFrame): Le DataFrame e representer graphiquement.
-        timezone (str): Le fuseau horaire e utiliser pour le graphique.
-        outputplot (str, optional): Le nom du fichier oe sauvegarder le graphique. Si None, le graphique est affiche. Par defaut : None.
-        verbose (bool, optional): Si vrai, affiche des messages supplementaires pendant la creation du graphique. Par defaut : False.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: Si df n'est pas un DataFrame pandas ou si outputplot n'est pas une chaene de caracteres.
-    """
-    if not isinstance(df, pd.DataFrame):
-        raise ValueError("df doit etre un DataFrame pandas.")
-    if outputplot is not None and not isinstance(outputplot, str):
-        raise ValueError("outputplot doit etre une chaene de caracteres.")
-
-    plt.figure(figsize=(19.20, 10.80), dpi=200)
-
-    plt.gca().xaxis_date(timezone)
-    plt.plot(df, label=df.columns, alpha=0.5)
-
-    max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
-    plt.yticks(np.arange(0, max_y, 25))  # Definit les ticks de l'axe des y tous les 25
-    plt.grid(
-        axis="y", linestyle="dotted"
-    )  # Dessine une grille horizontale en pointilles
-
-    plt.legend()
-    plt.title("DATAFFICHEUR - Effort en fonction du temps")
-    plt.xlabel("Temps")
-    plt.ylabel("kgf (kilogramme force - equivalant daN)")
-    if outputplot:
-        if verbose:
-            print(f"Export du graphique dans {outputplot}.")
-        plt.savefig(outputplot)
-        plt.close()  # Ferme la figure pour liberer de la memoire
-    else:
-        plt.show()
-
-
-def add_notes(df, dir, note, verbose=False):
-    """
-    Ajoute des notes e un DataFrame sur un intervalle de temps specifique.
-
-    Args:
-        df (pandas.DataFrame): Le DataFrame auquel ajouter les notes.
-        dir (str): Le repertoire oe se trouve le fichier contenant les notes.
-        note (str): Le nom du fichier contenant les notes.
-        verbose (bool, optional): Si vrai, affiche des messages supplementaires pendant le processus. Par defaut : False.
-
-    Returns:
-        pandas.DataFrame: Le DataFrame avec les notes ajoutees.
-
-    Raises:
-        ValueError: Si df n'est pas un DataFrame pandas, ou si le fichier des notes ne contient pas les colonnes 'start', 'end' et 'action'.
-    """
-    if not isinstance(df, pd.DataFrame):
-        raise ValueError("df doit etre un DataFrame pandas.")
-
-    if verbose:
-        print(f"Chargement des notes {note}")
-    notecols = ["start", "end", "action"]
-    note_metadata = pd.read_csv(os.path.join(dir, note), header=None, names=notecols)
-    if not {"start", "end", "action"}.issubset(note_metadata.columns):
-        raise ValueError(
-            "Le fichier des notes doit contenir les colonnes 'start', 'end' et 'action'."
-        )
-
-    if verbose:
-        print(note_metadata)
-
-    for index, row in note_metadata.iterrows():
-        if verbose:
-            print(
-                f"Ajout de l'action sur l'interval {row['start']}-{row['end']}: {row['action']}"
-            )
-        df.loc[row["start"] : row["end"], "action"] = row["action"]
-
-    return df
 
 
 def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
