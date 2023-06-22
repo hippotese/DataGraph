@@ -53,7 +53,7 @@ parser.add_argument(
     "-pht",
     "--plothticks",
     type=int,
-    help=f"Segmentation de l'axe Y",
+    help=f"Segmentation de l'axe Y. Par defaut: 10",
     default=10,
 )
 parser.add_argument(

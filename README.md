@@ -20,7 +20,7 @@ sont converties
 
 Les trames pour 2 capteurs
 ```csv
-565,06/10/2022,15:52:11,53,55,69,70,55,56,52,57,63,64,52,56,50,50,52,56,61,48,49,39 (2 
+565,06/10/2022,15:52:11,53,55,69,70,55,56,52,57,63,64,52,56,50,50,52,56,61,48,49,39 (2 capteurs)
 ```
 sont converties
 ```csv
@@ -32,27 +32,28 @@ sont converties
 
 ```shell
 python3 datafficheur.py --help
-usage: Datafficheur [-h] -d DIR [-n NOTE] [-v VERBOSE] [-o OUTPUT] [-p | --plot | --no-plot] [-op OUTPUTPLOT]
-                    [-z TIMEZONE]
+usage: Datafficheur [-h] -d DIR [-n NOTE] [-v VERBOSE] [-o OUTPUT] [-p | --plot | --no-plot] [-op OUTPUTPLOT] [-pht PLOTHTICKS] [-z TIMEZONE]
 
-Lecture des données du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur
+Lecture des donnees du capteur Datafficheur. http://hippotese.free.fr/blog/index.php/?q=datafficheur
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -n NOTE, --note NOTE  Fichier indiquant les temps de début et fin et le type d outil. Par défaut: note.csv
+  -n NOTE, --note NOTE  Fichier indiquant les temps de debut et fin et le type d'outil. Par defaut: note.csv
   -v VERBOSE, --verbose VERBOSE
                         Affiche des messages sur la progression.
   -o OUTPUT, --output OUTPUT
-                        Nom du fichier créé. Par défaut: output.csv
+                        Nom du fichier cree. Par defaut: output.csv
   -p, --plot, --no-plot
-                        Création d un graphique. (default: True)
+                        Creation d'un graphique.
   -op OUTPUTPLOT, --outputplot OUTPUTPLOT
-                        Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par défaut: None
+                        Sauvegarde du graphique (eg. format PDF, PNG, SVG). Par defaut: None
+  -pht PLOTHTICKS, --plothticks PLOTHTICKS
+                        Segmentation de l'axe Y. Par defaut: 10
   -z TIMEZONE, --timezone TIMEZONE
-                        Fuseau horaire. Par défaut: Europe/Paris
+                        Fuseau horaire. Par defaut: Europe/Paris
 
 required arguments:
-  -d DIR, --dir DIR     Chemin vers le dossier contenant les données Datafficheur.
+  -d DIR, --dir DIR     Chemin vers le dossier contenant les donnees Datafficheur.
 ```
 
 
