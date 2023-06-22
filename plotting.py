@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10):
+def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10, sufixe=None):
     """
     Cree un graphique e partir des donnees fournies et l'enregistre dans un fichier si specifie.
 
@@ -30,13 +30,18 @@ def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10):
     plt.plot(df, label=df.columns, alpha=0.5)
 
     max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
-    plt.yticks(np.arange(0, max_y, hticks))  # Definit les ticks de l'axe des y (default 10)
+    plt.yticks(
+        np.arange(0, max_y, hticks)
+    )  # Definit les ticks de l'axe des y (default 10)
     plt.grid(
         axis="y", linestyle="dotted"
     )  # Dessine une grille horizontale en pointilles
 
     plt.legend()
-    plt.title("DATAFFICHEUR - Effort en fonction du temps")
+    if sufixe == None:
+        plt.title("DATAFFICHEUR - Effort en fonction du temps")
+    else:
+        plt.title("DATAFFICHEUR - Effort en fonction du temps - " + sufixe)
     plt.xlabel("Temps")
     plt.ylabel("kgf (kilogramme force - equivalant daN)")
     if outputplot:

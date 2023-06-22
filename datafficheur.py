@@ -113,6 +113,20 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
 
         df = prepare_data(datas)
 
+        # collecte de la date de mesure pour intégration (titre graph + filename)
+        unique_dates = pd.Series(df.index.date).unique()
+        # Obtenir les dates minimale et maximale
+        min_date = unique_dates.min()
+        max_date = unique_dates.max()
+        date_str = ""
+        # si les mesures sont sur plus d'un jour ...
+        if len(unique_dates) > 1:
+            # ... on prend min et max
+            date_str = f"{min_date} - {max_date}"
+        else:
+            # ... sinon just min
+            date_str = f"{min_date}"
+
         # ajout des notes au dataframe si existe
         if hasNote:
             df = add_notes(df, dir, note, verbose)
@@ -122,7 +136,12 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
             if verbose:
                 print("Creation du graphique.")
             create_plot(
-                df, tz, os.path.join(dir, outputplot) if outputplot else None, verbose, args.plothticks
+                df,
+                tz,
+                os.path.join(dir, date_str + "_" + outputplot) if outputplot else None,
+                verbose,
+                args.plothticks,
+                date_str,
             )
 
         df.columns = [" ".join(str(level) for level in col) for col in df.columns]
@@ -132,8 +151,8 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
         )
 
         if verbose:
-            print(f"Ecriture du fichier de sortie {output}")
-        df.to_csv(os.path.join(dir, output))
+            print(f"Ecriture du fichier de sortie {date_str}_{output}")
+        df.to_csv(os.path.join(dir, date_str + "_" + output))
 
     except Exception as e:
         print(f"Une erreur s'est produite : {e}")
