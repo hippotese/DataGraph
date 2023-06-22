@@ -50,6 +50,13 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
+    "-pht",
+    "--plothticks",
+    type=int,
+    help=f"Segmentation de l'axe Y",
+    default=10,
+)
+parser.add_argument(
     "-z",
     "--timezone",
     help=f"Fuseau horaire. Par defaut: {DEFAULT_TIMEZONE}",
@@ -115,7 +122,7 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
             if verbose:
                 print("Creation du graphique.")
             create_plot(
-                df, tz, os.path.join(dir, outputplot) if outputplot else None, verbose
+                df, tz, os.path.join(dir, outputplot) if outputplot else None, verbose, args.plothticks
             )
 
         df.columns = [" ".join(str(level) for level in col) for col in df.columns]
