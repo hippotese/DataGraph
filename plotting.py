@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
+from constants import GRAPH_ALPHA
 
 
 def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
@@ -26,7 +27,7 @@ def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
     plt.figure(figsize=(19.20, 10.80), dpi=200)
 
     plt.gca().xaxis_date()
-    plt.plot(df, label=df.columns, alpha=0.5)
+    plt.plot(df, label=df.columns, alpha=GRAPH_ALPHA)
 
     max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
     plt.yticks(
