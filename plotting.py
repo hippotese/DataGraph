@@ -17,7 +17,9 @@ def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
         None
 
     Raises:
-        ValueError: Si df n'est pas un DataFrame pandas ou si outputplot n'est pas une chaene de caracteres.
+        ValueError: Si df n'est pas un DataFrame pandas 
+                    Si outputplot n'est pas une chaine de caracteres
+                    Si df n'a pas deux ou trois colonnes
     """
     if not isinstance(df, pd.DataFrame):
         raise ValueError("df doit etre un DataFrame pandas.")
@@ -27,7 +29,17 @@ def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
     plt.figure(figsize=(19.20, 10.80), dpi=200)
 
     plt.gca().xaxis_date()
-    plt.plot(df, label=df.columns, alpha=GRAPH_ALPHA)
+
+    # Définition des noms des courbes
+    if len(df.columns) == 2:
+        labels = ["Capt 1", "Tot"]
+    elif len(df.columns) == 3:
+        labels = ["Capt 1", "Capt 2", "Tot"]
+    else:
+        raise ValueError("Le DataFrame doit avoir deux ou trois colonnes.")
+
+    for col, label in zip(df.columns, labels):
+        plt.plot(df[col], label=label, alpha=GRAPH_ALPHA)
 
     max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
     plt.yticks(
