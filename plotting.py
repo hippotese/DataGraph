@@ -3,13 +3,12 @@ import numpy as np
 import pandas as pd
 
 
-def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10, sufixe=None):
+def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
     """
     Cree un graphique e partir des donnees fournies et l'enregistre dans un fichier si specifie.
 
     Args:
         df (pandas.DataFrame): Le DataFrame e representer graphiquement.
-        timezone (str): Le fuseau horaire e utiliser pour le graphique.
         outputplot (str, optional): Le nom du fichier oe sauvegarder le graphique. Si None, le graphique est affiche. Par defaut : None.
         verbose (bool, optional): Si vrai, affiche des messages supplementaires pendant la creation du graphique. Par defaut : False.
 
@@ -26,7 +25,7 @@ def create_plot(df, timezone, outputplot=None, verbose=False, hticks=10, sufixe=
 
     plt.figure(figsize=(19.20, 10.80), dpi=200)
 
-    plt.gca().xaxis_date(timezone)
+    plt.gca().xaxis_date()
     plt.plot(df, label=df.columns, alpha=0.5)
 
     max_y = df.max().max()  # Obtient la valeur maximale dans le DataFrame
