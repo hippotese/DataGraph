@@ -137,7 +137,6 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
                 print("Creation du graphique.")
             create_plot(
                 df,
-                tz,
                 os.path.join(dir, date_str + "_" + outputplot) if outputplot else None,
                 verbose,
                 args.plothticks,
