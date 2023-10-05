@@ -5,7 +5,7 @@ import pathlib
 import pandas as pd
 from constants import DEFAULT_TIMEZONE
 from data_processing import load_datafficheur_file, add_notes, prepare_data
-from plotting import create_plot
+from plotting import create_plot, create_histograms
 from utils import find_files, moving_average
 
 # traitement des arguments
@@ -132,6 +132,7 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
             df = add_notes(df, dir, note, verbose)
 
         # creation des fichier
+        # creation des fichier
         if plot:
             if verbose:
                 print("Creation du graphique.")
@@ -141,6 +142,12 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
                 verbose,
                 args.plothticks,
                 date_str,
+            )
+            create_histograms(
+                df,
+                os.path.join(dir, date_str + "_Histogrammes_" + outputplot)
+                if outputplot
+                else None,
             )
 
         df.columns = [" ".join(str(level) for level in col) for col in df.columns]
