@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import norm
-from constants import GRAPH_ALPHA, HISTO_SUBDIVISIONS_X
+from constants import GRAPH_ALPHA, HISTO_SUBDIVISIONS_X, DENSITY, BINS, EXCLURE, OUTPUTFILE
 
 
 def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
@@ -26,9 +26,13 @@ def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
     if not isinstance(df, pd.DataFrame):
         raise ValueError("df doit etre un DataFrame pandas.")
     if outputplot is not None and not isinstance(outputplot, str):
-        raise ValueError("outputplot doit etre une chaene de caracteres.")
+        raise ValueError("outputplot doit etre une chaine de caracteres.")
 
-    plt.figure(figsize=(19.20, 10.80), dpi=200)
+    #plt.figure(figsize=(19.20, 10.80), dpi=300)    
+    #plt.figure(figsize=(19.20, 10.80), dpi=200)
+    plt.figure(figsize=(9.60, 5.40), dpi=200)
+    #plt.figure(figsize=(19.20, 10.80), dpi=100)
+    #plt.figure(figsize=(19.20, 10.80), dpi=50)
 
     plt.gca().xaxis_date()
 
@@ -57,17 +61,20 @@ def create_plot(df, outputplot=None, verbose=False, hticks=10, sufixe=None):
     else:
         plt.title("DATAFFICHEUR - Effort en fonction du temps - " + sufixe)
     plt.xlabel("Temps")
-    plt.ylabel("kgf (kilogramme force - equivalant daN)")
-    if outputplot:
-        if verbose:
-            print(f"Export du graphique dans {outputplot}.")
-        plt.savefig(outputplot)
-        plt.close()  # Ferme la figure pour liberer de la memoire
-    else:
-        plt.show()
+    plt.ylabel("kgf (kilogramme force - comparable au daN)")
 
+    #if outputplot:
+    #if verbose:
+    #    print(f"Export du graphique dans {outputplot}.")
+    plt.savefig(outputplot)
+    #plt.close()  # Ferme la figure pour liberer de la memoire
+    #else:
+    plt.show()
 
-def create_histograms(df, outputfile, exclure=9, verbose=False):
+###########
+###########
+#def create_histograms(df, outputfile=None, exclure=9, verbose=False):
+def create_histograms(df, outputfile=OUTPUTFILE, exclure=EXCLURE, verbose=False):
     """
     Crée un histogramme et une courbe KDE pour chaque colonne du DataFrame,
     excluant les valeurs inférieures à un certain seuil.
@@ -88,7 +95,8 @@ def create_histograms(df, outputfile, exclure=9, verbose=False):
     """
     if not isinstance(df, pd.DataFrame):
         raise ValueError("df doit être un DataFrame pandas.")
-    if not isinstance(outputfile, str):
+    #if not isinstance(outputfile, str):
+    if outputfile is not None and not isinstance(outputfile, str):
         raise ValueError("outputfile doit être une chaîne de caractères.")
     if not isinstance(exclure, (int, float)):
         raise ValueError("exclure doit être un nombre.")
@@ -103,7 +111,10 @@ def create_histograms(df, outputfile, exclure=9, verbose=False):
 
         # Créer l'histogramme avec des espaces entre les barres (c.f. Note density)
         axs[i].hist(
-            data, bins=30, rwidth=0.9, density=True, alpha=0.3, label=column_name
+            #data, bins=30, rwidth=0.9, density=True, alpha=0.3, label=column_name
+            ################### densité à la place du nombre d'occurences pour pouvoir comparer différentes mesures
+            ###################
+            data, bins=BINS, rwidth=0.9, density=DENSITY, alpha=0.3, label=column_name
         )
 
         # Ajouter une courbe de distribution de noyau (c.f. Note KDE)
@@ -113,7 +124,7 @@ def create_histograms(df, outputfile, exclure=9, verbose=False):
         mu, std = data.mean(), data.std()
         x = np.linspace(data.min(), data.max(), 100)
         p = norm.pdf(x, mu, std)
-        axs[i].plot(x, p, "k", linestyle="--", label="Normal Distribution")
+        axs[i].plot(x, p, "k", linestyle="--", label="Distribution Normale")
 
         # Ajouter des droites verticales pour la moyenne et l'écart type
         axs[i].axvline(
@@ -130,7 +141,7 @@ def create_histograms(df, outputfile, exclure=9, verbose=False):
             linestyle="dotted",
             alpha=0.7,
             linewidth=2,
-            label=f"-1 E-T: {mu-std:.0f} kgf",
+            label=f"-1 Ec-Ty: {mu-std:.0f} kgf",
         )
         axs[i].axvline(
             mu + std,
@@ -138,27 +149,32 @@ def create_histograms(df, outputfile, exclure=9, verbose=False):
             linestyle="dotted",
             alpha=0.7,
             linewidth=2,
-            label=f"+1 E-T: {mu+std:.0f} kgf",
+            label=f"+1 Ec-Ty: {mu+std:.0f} kgf",
         )
 
-        axs[i].set_title(f"Histogramme et KDE de {column_name}")
+        #axs[i].set_title(f"Histogramme et KDE de {column_name}")
+        axs[i].set_title(f"DATAFFICHEUR - Histogramme de fréquence d'apparition des valeurs d'effort pour capt : {column_name}")
         axs[i].legend()
 
         # Changer les subdivisions de X
         axs[i].xaxis.set_major_locator(plt.MaxNLocator(HISTO_SUBDIVISIONS_X))
 
-        axs[i].set_xlabel("kgf (kilogramme force - équivalant daN)")
+        #axs[i].set_xlabel("kgf (kilogramme force - équivalant daN)")
+        axs[i].set_xlabel("kgf (kilogramme force - comparable au daN) \n  \n ")
 
     # Ajuster l'espacement entre les sous-graphiques
     plt.tight_layout()
 
-    if outputfile:
-        if verbose:
-            print(f"Export du graphique dans {outputfile}.")
-        plt.savefig(outputfile)
-        plt.close()  # Ferme la figure pour liberer de la memoire
-    else:
-        plt.show()
+
+    #if outputfile:
+    #if verbose:
+    #    print(f"Export du graphique dans {outputfile}.")
+    plt.savefig(outputfile)
+    #plt.close()  # Ferme la figure pour liberer de la memoire
+    #else:
+
+    ###
+    plt.show()
 
 
 # Note density :

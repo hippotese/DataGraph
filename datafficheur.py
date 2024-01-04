@@ -3,7 +3,7 @@ import os
 import pytz
 import pathlib
 import pandas as pd
-from constants import DEFAULT_TIMEZONE
+from constants import DEFAULT_TIMEZONE, OUTPUTPLOT, OUTPUT, OUTPUTFILE
 from data_processing import load_datafficheur_file, add_notes, prepare_data
 from plotting import create_plot, create_histograms
 from utils import find_files, moving_average
@@ -73,18 +73,22 @@ except pytz.exceptions.UnknownTimeZoneError:
         print(f"TimeZone inconnu. utilisation de {DEFAULT_TIMEZONE}")
     tz = DEFAULT_TIMEZONE
 
-output = args.output
+#output = args.output # nom fichier csv
+output = OUTPUT
 note = args.note
 dir = args.dir
 hasNote = os.path.exists(os.path.join(dir, note))
-plot = args.plot
-outputplot = args.outputplot
+#plot = args.plot
+plot=True
+#outputplot = args.outputplot
+outputplot = OUTPUTPLOT # nom fichier pdf ou png
+outputfile = OUTPUTFILE # nom fichier pdf ou png
 verbose = args.verbose
 
 
 def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
     """
-    Fonction principale qui execute la chaene de traitement de donnees.
+    Fonction principale qui execute la chaine de traitement de donnees.
 
     Args:
         dir (str): Le repertoire contenant les fichiers de donnees.
@@ -93,7 +97,7 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
         plot (bool): Indique si un graphique doit etre cree.
         verbose (bool): Si vrai, affiche des messages supplementaires pendant le processus.
         outputplot (str): Le chemin du fichier de sortie pour le graphique.
-        tz (str): Le fuseau horaire e utiliser pour l'affichage des dates.
+        tz (str): Le fuseau horaire a utiliser pour l'affichage des dates.
         output (str): Le nom du fichier de sortie.
     """
 
@@ -135,18 +139,38 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
         # creation des fichier
         if plot:
             if verbose:
-                print("Creation du graphique.")
+                print("Creation des fichiers outputplot.")
             create_plot(
                 df,
-                os.path.join(dir, date_str + "_" + outputplot) if outputplot else None,
+                os.path.join(dir, date_str + "_Courbe-Efforts_" + outputplot) 
+                if outputplot 
+                else None,
                 verbose,
                 args.plothticks,
                 date_str,
             )
             create_histograms(
                 df,
-                os.path.join(dir, date_str + "_Histogrammes_" + outputplot)
+                os.path.join(dir, date_str + "_Courbe-Freq_" + outputplot)
                 if outputplot
+                else None,
+            )
+        if plot:
+            if verbose:
+                print("Creation des fichiers outputfile.")
+            create_plot(
+                df,
+                os.path.join(dir, date_str + "_Courbe-Efforts_" + outputfile) 
+                if outputfile 
+                else None,
+                verbose,
+                args.plothticks,
+                date_str,
+            )
+            create_histograms(
+                df,
+                os.path.join(dir, date_str + "_Courbe-Freq_" + outputfile)
+                if outputfile
                 else None,
             )
 
@@ -157,7 +181,8 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
         )
 
         if verbose:
-            print(f"Ecriture du fichier de sortie {date_str}_{output}")
+            #print(f"Ecriture du fichier de sortie {date_str}_{output}")
+            print(f"Creation du fichier CSV {date_str}_{output}")
         df.to_csv(os.path.join(dir, date_str + "_" + output))
 
     except Exception as e:
