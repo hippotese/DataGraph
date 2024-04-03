@@ -3,7 +3,7 @@ import os
 import pytz
 import pathlib
 import pandas as pd
-from constants import DEFAULT_TIMEZONE, OUTPUTPLOT, OUTPUT, OUTPUTFILE
+from constants import DEFAULT_TIMEZONE, PLOTHTICKS, OUTPUTPLOT, OUTPUT, OUTPUTFILE
 from data_processing import load_datafficheur_file, add_notes, prepare_data
 from plotting import create_plot, create_histograms
 from utils import find_files, moving_average
@@ -55,6 +55,7 @@ parser.add_argument(
     type=int,
     help=f"Segmentation de l'axe Y. Par defaut: 10",
     default=10,
+    #default=20,
 )
 parser.add_argument(
     "-z",
@@ -63,6 +64,8 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+print(args)
 
 # definition de la timezone
 tz = args.timezone
@@ -84,7 +87,8 @@ plot=True
 outputplot = OUTPUTPLOT # nom fichier pdf ou png
 outputfile = OUTPUTFILE # nom fichier pdf ou png
 verbose = args.verbose
-
+#args.plothticks = PLOTHTICKS
+plothticks = PLOTHTICKS
 
 def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
     """
@@ -135,8 +139,7 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
         if hasNote:
             df = add_notes(df, dir, note, verbose)
 
-        # creation des fichier
-        # creation des fichier
+        # creation des fichiers
         if plot:
             if verbose:
                 print("Creation des fichiers outputplot.")
@@ -146,7 +149,8 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
                 if outputplot 
                 else None,
                 verbose,
-                args.plothticks,
+                #args.plothticks,
+                plothticks,
                 date_str,
             )
             create_histograms(
@@ -155,7 +159,6 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
                 if outputplot
                 else None,
             )
-        if plot:
             if verbose:
                 print("Creation des fichiers outputfile.")
             create_plot(
@@ -164,14 +167,18 @@ def main(dir, hasNote, note, plot, verbose, outputplot, tz, output):
                 if outputfile 
                 else None,
                 verbose,
-                args.plothticks,
+                #args.plothticks,
+                plothticks,
                 date_str,
+				False
             )
             create_histograms(
                 df,
                 os.path.join(dir, date_str + "_Courbe-Freq_" + outputfile)
                 if outputfile
                 else None,
+                False,
+                show=False
             )
 
         df.columns = [" ".join(str(level) for level in col) for col in df.columns]

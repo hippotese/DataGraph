@@ -2,16 +2,16 @@ DEFAULT_TIMEZONE = "Europe/Paris"
 
 ## Fichier de sortie CSV
 #OUTPUT = None
-OUTPUT = "Kassine_Gaia_01.csv"
+OUTPUT = "Prob-capt-Uzes.csv"
 
 ## Fichiers de sortie des graphiques
 #OUTPUTPLOT = None
-OUTPUTPLOT = "Kassine_Gaia_01.pdf"
+OUTPUTPLOT = "Prob-capt-Uzes.pdf"
 
 
 ## Fichiers de sortie des graphiques
 #OUTPUTFILE = None
-OUTPUTFILE = "Kassine_Gaia_01.png"
+OUTPUTFILE = "Prob-capt-Uzes.png"
 
 
 ## Graphique effort/temps
@@ -23,13 +23,33 @@ GRAPH_ALPHA = 0.7
 
 ## Graphique histograms
 # Nombre de subdivisions de l'axe X
+#HISTO_SUBDIVISIONS_X = 20 # defaut
+HISTO_SUBDIVISIONS_X = 10
+
+## Graphique histograms
+# Nombre de subdivisions de l'axe Y
 # Utile pour rester lisible quand on a de fortes valeurs (plusieurs centaines de kgf)
-HISTO_SUBDIVISIONS_X = 20 # defaut
-#HISTO_SUBDIVISIONS_X = 10
+PLOTHTICKS = 10 #defaut efforts à 70-90 kg
+#PLOTHTICKS = 15
+#PLOTHTICKS = 20 # quand les efforts sont supèrieurs à 120 kg
 
 ## Valeur à partir de laquelle on doit exclure les efforts pour le tracé de la courbe de fréquence d'apparition
-#EXCLURE = 0 # on garde toutes les valeurs
-EXCLURE = 45 # on exclue les valeurs inférieures à 45
+EXCLURE = 0 # on garde toutes les valeurs
+#EXCLURE = 5
+#EXCLURE = 9
+#EXCLURE = 15
+#EXCLURE = 20
+#EXCLURE = 25
+#EXCLURE = 35
+#EXCLURE = 40
+#EXCLURE = 45 # on exclue les valeurs inférieures à 45
+#EXCLURE = 50
+
+## Valeur au dela desquelle on doit exclure les efforts pour le tracé de la courbe de fréquence d'apparition
+#EXCLURESUP = 5
+#EXCLURESUP = 45
+#EXCLURESUP = 100 #
+EXCLURESUP = 1000 # on garde toutes les valeurs
 
 ## Calcul par densité ou par nombre d'occurences
 DENSITY = True # calcul par densité
@@ -38,5 +58,6 @@ DENSITY = True # calcul par densité
 ## Largeur des barres de l'histogramme des fréquences d'apparition
 #BINS = 100 # barres très étroites
 #BINS = 60 # barres étroites
-BINS = 30 # barres plus larges
+BINS = 50
+#BINS = 30 # barres plus larges
 
