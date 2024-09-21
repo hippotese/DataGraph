@@ -2,16 +2,16 @@ DEFAULT_TIMEZONE = "Europe/Paris"
 
 ## Fichier de sortie CSV
 #OUTPUT = None
-OUTPUT = "Prob-capt-Uzes.csv"
+OUTPUT = "Quentin-Trotignon-buttoir.csv"
 
 ## Fichiers de sortie des graphiques
 #OUTPUTPLOT = None
-OUTPUTPLOT = "Prob-capt-Uzes.pdf"
+OUTPUTPLOT = "Quentin-Trotignon-buttoir.pdf"
 
 
 ## Fichiers de sortie des graphiques
 #OUTPUTFILE = None
-OUTPUTFILE = "Prob-capt-Uzes.png"
+OUTPUTFILE = "Quentin-Trotignon-buttoir.png"
 
 
 ## Graphique effort/temps
@@ -34,12 +34,14 @@ PLOTHTICKS = 10 #defaut efforts à 70-90 kg
 #PLOTHTICKS = 20 # quand les efforts sont supèrieurs à 120 kg
 
 ## Valeur à partir de laquelle on doit exclure les efforts pour le tracé de la courbe de fréquence d'apparition
-EXCLURE = 0 # on garde toutes les valeurs
+#EXCLURE = 0 # on garde toutes les valeurs
 #EXCLURE = 5
-#EXCLURE = 9
+EXCLURE = 9
+#EXCLURE = 10
 #EXCLURE = 15
 #EXCLURE = 20
 #EXCLURE = 25
+#EXCLURE = 30
 #EXCLURE = 35
 #EXCLURE = 40
 #EXCLURE = 45 # on exclue les valeurs inférieures à 45
