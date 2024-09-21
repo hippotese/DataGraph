@@ -1,4 +1,4 @@
-# DataMoyGraph.py
+# DataMoyGraph-05.py
 # v04 prog de tracé des valeurs du Datafficheur, fonctionne avec défilement, amélioration grid
 # v05 modif couleur courbe (rouge maxi et bleu moy)
 
